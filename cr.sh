@@ -37,6 +37,7 @@ Usage: $(basename "$0") <options>
         --skip-existing           Skip package upload if release exists
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
+        --release-order           The order in which to release the charts
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
 }
@@ -53,6 +54,7 @@ main() {
   local skip_existing=
   local skip_upload=
   local mark_as_latest=true
+  local release_order=
   local packages_with_index=false
   local pages_branch=
 
@@ -82,6 +84,7 @@ main() {
       rm -rf .cr-index
       mkdir -p .cr-index
 
+      # set order before this...
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
           package_chart "$chart"
@@ -212,6 +215,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --release_order)
+      if [[ -n "${2:-}" ]]; then
+        release_order="$2"
+        shift
+      fi
+      ;;
     --packages-with-index)
       if [[ -n "${2:-}" ]]; then
         packages_with_index="$2"
@@ -295,11 +304,20 @@ lookup_changed_charts() {
 
   local changed_files
   changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
+  echo "$changed_files"
 
   local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
+  echo "depth: $depth"
   local fields="1-${depth}"
+  echo "fields: $fields"
 
-  cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+  # if [[ -z "$release_order" ]]; then
+    cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+    # echo "WARNING: No release order specified. Defaulting to alphabetical order."
+  # else
+  #   # if release order is set, use it
+  #   cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+  # fi
 }
 
 package_chart() {

@@ -53,6 +53,9 @@ inputs:
     description: "Upload chart packages directly into publishing branch"
     required: false
     default: false
+  release_order:
+    description: "The order in which to release the charts"
+    required: false
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
@@ -114,6 +117,10 @@ runs:
 
         if [[ -n "${{ inputs.packages_with_index }}" ]]; then
             args+=(--packages-with-index "${{ inputs.packages_with_index }}")
+        fi
+
+        if [[ -n "${{ inputs.release_order }}" ]]; then
+            args+=(--release-order "${{ inputs.release_order }}")
         fi
 
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
