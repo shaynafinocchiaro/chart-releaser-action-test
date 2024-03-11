@@ -76,6 +76,7 @@ main() {
     echo "Discovering changed charts since '$latest_tag'..."
     local changed_charts=()
     readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
+    echo "$changed_charts" >&2
 
     if [[ -n "${changed_charts[*]}" ]]; then
       install_chart_releaser
@@ -95,14 +96,16 @@ main() {
           fi
         done
       else
+        echo "Skipping chart ${skip_chart[@]}"
         for target in "${skip_chart[@]}"; do
-          for chart in "${!changed_charts[@]}"; do
-            if [[ ${changed_charts[$chart]} == "$target" ]]; then
+          for chart in "${changed_charts[@]}"; do
+            # if [[ ${changed_charts[$chart]} == "$target" ]]; then
               unset changed_charts[$chart]
-            fi
+            # fi
           done
         done
         changed_charts=("${changed_charts[@]}")
+        echo "$cgabanged_charts" >&2
         for chart in "${changed_charts[@]}"; do
           if [[ -d "$chart" ]]; then
             package_chart "$chart"
