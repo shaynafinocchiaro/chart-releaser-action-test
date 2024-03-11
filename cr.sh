@@ -37,8 +37,6 @@ Usage: $(basename "$0") <options>
         --skip-existing           Skip package upload if release exists
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
-        --release-order           The order in which to release the charts
-        --skip-chart              Skip chart release
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
 }
@@ -55,8 +53,6 @@ main() {
   local skip_existing=
   local skip_upload=
   local mark_as_latest=true
-  # local release_order=
-  local skip_chart=
   local packages_with_index=false
   local pages_branch=
 
@@ -78,21 +74,21 @@ main() {
     readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
     echo "$changed_charts" >&2
     
-    if [[ -n "$skip_chart" ]]; then
-      echo "Skipping chart ${skip_chart[@]}"
-      for target in "${skip_chart[@]}"; do
-        for chart in "${!changed_charts[@]}"; do
-          if [[ -d "$chart" ]]; then
-            if [[ "$chart" == "$target" ]]; then
-              echo "Unsetting $chart"
-              unset changed_charts[$chart]
-            fi
-          fi
-        done
-      done
-      changed_charts=("${changed_charts[@]}")
-      echo "$changed_charts" >&2
-    fi
+    # if [[ -n "$skip_chart" ]]; then
+    #   echo "Skipping chart ${skip_chart[@]}"
+    #   for target in "${skip_chart[@]}"; do
+    #     for chart in "${!changed_charts[@]}"; do
+    #       if [[ -d "$chart" ]]; then
+    #         if [[ "$chart" == "$target" ]]; then
+    #           echo "Unsetting $chart"
+    #           unset changed_charts[$chart]
+    #         fi
+    #       fi
+    #     done
+    #   done
+    #   changed_charts=("${changed_charts[@]}")
+    #   echo "$changed_charts" >&2
+    # fi
 
     if [[ -n "${changed_charts[*]}" ]]; then
       install_chart_releaser
@@ -233,18 +229,6 @@ parse_command_line() {
         shift
       fi
       ;;
-    --release_order)
-      if [[ -n "${2:-}" ]]; then
-        release_order="$2"
-        shift
-      fi
-      ;;
-    --skip_chart)
-      if [[ -n "${2:-}" ]]; then
-        skip_chart="$2"
-        shift
-      fi
-      ;;
     --packages-with-index)
       if [[ -n "${2:-}" ]]; then
         packages_with_index="$2"
@@ -331,9 +315,7 @@ lookup_changed_charts() {
   echo "$changed_files"
 
   local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
-  echo "depth: $depth"
   local fields="1-${depth}"
-  echo "fields: $fields"
 
   cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
 }
