@@ -77,6 +77,22 @@ main() {
     local changed_charts=()
     readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
     echo "$changed_charts" >&2
+    
+    if [[ -n "$skip_chart" ]]; then
+      echo "Skipping chart ${skip_chart[@]}"
+      for target in "${skip_chart[@]}"; do
+        for chart in "${!changed_charts[@]}"; do
+          if [[ -d "$chart" ]]; then
+            if [[ "$chart" == "$target" ]]; then
+              echo "Unsetting $chart"
+              unset changed_charts[$chart]
+            fi
+          fi
+        done
+      done
+      changed_charts=("${changed_charts[@]}")
+      echo "$changed_charts" >&2
+    fi
 
     if [[ -n "${changed_charts[*]}" ]]; then
       install_chart_releaser
@@ -87,33 +103,13 @@ main() {
       rm -rf .cr-index
       mkdir -p .cr-index
 
-      if [[ -z "$skip_chart" ]]; then
-        for chart in "${changed_charts[@]}"; do
-          if [[ -d "$chart" ]]; then
-            package_chart "$chart"
-          else
-            echo "Nothing to do. No chart changes detected."
-          fi
-        done
-      else
-        echo "Skipping chart ${skip_chart[@]}"
-        for target in "${skip_chart[@]}"; do
-          for chart in "${changed_charts[@]}"; do
-            # if [[ ${changed_charts[$chart]} == "$target" ]]; then
-              unset changed_charts[$chart]
-            # fi
-          done
-        done
-        changed_charts=("${changed_charts[@]}")
-        echo "$cgabanged_charts" >&2
-        for chart in "${changed_charts[@]}"; do
-          if [[ -d "$chart" ]]; then
-            package_chart "$chart"
-          else
-            echo "Nothing to do. No chart changes detected."
-          fi
-        done
-      fi
+      for chart in "${changed_charts[@]}"; do
+        if [[ -d "$chart" ]]; then
+          package_chart "$chart"
+        else
+          echo "Nothing to do. No chart changes detected."
+        fi
+      done
 
       release_charts
       update_index
